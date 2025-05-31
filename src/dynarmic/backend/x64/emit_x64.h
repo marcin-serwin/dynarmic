@@ -14,10 +14,10 @@
 #include <vector>
 
 #include <mcl/bitsizeof.hpp>
-#include <tsl/robin_map.h>
-#include <tsl/robin_set.h>
+#include <ankerl/unordered_dense.h>
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
+#include <boost/container/small_vector.hpp>
 
 #include "dynarmic/backend/exception_handler.h"
 #include "dynarmic/backend/x64/reg_alloc.h"
@@ -36,6 +36,7 @@ enum class OptimizationFlag : u32;
 
 namespace Dynarmic::Backend::X64 {
 
+class A64EmitX64;
 class BlockOfCode;
 
 using A64FullVectorWidth = std::integral_constant<size_t, 128>;
@@ -77,6 +78,7 @@ public:
         CodePtr entrypoint;  // Entrypoint of emitted code
         size_t size;         // Length in bytes of emitted code
     };
+    static_assert(sizeof(BlockDescriptor) == 16);
 
     explicit EmitX64(BlockOfCode& code);
     virtual ~EmitX64();
@@ -88,7 +90,7 @@ public:
     virtual void ClearCache();
 
     /// Invalidates a selection of basic blocks.
-    void InvalidateBasicBlocks(const tsl::robin_set<IR::LocationDescriptor>& locations);
+    void InvalidateBasicBlocks(const ankerl::unordered_dense::set<IR::LocationDescriptor>& locations);
 
 protected:
     // Microinstruction emitters
@@ -99,6 +101,7 @@ protected:
 #undef OPCODE
 #undef A32OPC
 #undef A64OPC
+    void EmitInvalid(EmitContext& ctx, IR::Inst* inst);
 
     // Helpers
     virtual std::string LocationDescriptorToFriendlyName(const IR::LocationDescriptor&) const = 0;
@@ -123,10 +126,10 @@ protected:
 
     // Patching
     struct PatchInformation {
-        std::vector<CodePtr> jg;
-        std::vector<CodePtr> jz;
-        std::vector<CodePtr> jmp;
-        std::vector<CodePtr> mov_rcx;
+        boost::container::small_vector<CodePtr, 4> jg; //4*8=32
+        boost::container::small_vector<CodePtr, 4> jz; //4*8=32
+        boost::container::small_vector<CodePtr, 4> jmp; //4*8=32
+        boost::container::small_vector<CodePtr, 4> mov_rcx; //4*8=32
     };
     void Patch(const IR::LocationDescriptor& target_desc, CodePtr target_code_ptr);
     virtual void Unpatch(const IR::LocationDescriptor& target_desc);
@@ -138,8 +141,11 @@ protected:
     // State
     BlockOfCode& code;
     ExceptionHandler exception_handler;
-    tsl::robin_map<IR::LocationDescriptor, BlockDescriptor> block_descriptors;
-    tsl::robin_map<IR::LocationDescriptor, PatchInformation> patch_information;
+    ankerl::unordered_dense::map<IR::LocationDescriptor, BlockDescriptor> block_descriptors;
+    ankerl::unordered_dense::map<IR::LocationDescriptor, PatchInformation> patch_information;
+
+    // We need materialized protected members
+    friend class A64EmitX64;
 };
 
 }  // namespace Dynarmic::Backend::X64

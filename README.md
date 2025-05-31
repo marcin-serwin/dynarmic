@@ -1,7 +1,7 @@
 Dynarmic
 ========
 
-[![Github Actions Build Status (x86-64)](https://github.com/MerryMage/dynarmic/actions/workflows/x86-64.yml/badge.svg)](https://github.com/MerryMage/dynarmic/actions/workflows/x86-64.yml) [![Github Actions Build Status (AArch64)](https://github.com/merryhime/dynarmic/actions/workflows/aarch64.yml/badge.svg)](https://github.com/MerryMage/dynarmic/actions/workflows/AArch64.yml)
+[![Github Actions Build Status (x86-64)](https://github.com/yuzu-mirror/dynarmic/actions/workflows/x86-64.yml/badge.svg)](https://github.com/yuzu-mirror/dynarmic/actions/workflows/x86-64.yml) [![Github Actions Build Status (AArch64)](https://github.com/yuzu-mirror/dynarmic/actions/workflows/aarch64.yml/badge.svg)](https://github.com/yuzu-mirror/dynarmic/actions/workflows/AArch64.yml)
 
 A dynamic recompiler for ARM.
 
@@ -315,12 +315,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### robin-map
+### unordered_dense
 
 ```
 MIT License
 
-Copyright (c) 2017 Thibaut Goetghebuer-Planchon <tessil@gmx.com>
+Copyright (c) 2022 Martin Leitner-Ankerl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

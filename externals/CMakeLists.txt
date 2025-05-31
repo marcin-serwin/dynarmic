@@ -56,10 +56,11 @@ if (NOT TARGET merry::oaknut)
     endif()
 endif()
 
-# robin-map
+# unordered_dense
 
-if (NOT TARGET tsl::robin_map)
-    add_subdirectory(robin-map)
+if (NOT TARGET ankerl::unordered_dense)
+    set(UNORDERED_DENSE_INSTALL ON)
+    add_subdirectory(unordered_dense)
 endif()
 
 # xbyak
@@ -77,9 +78,10 @@ if (NOT TARGET Zydis::Zydis)
         set(ZYDIS_BUILD_TOOLS OFF)
         set(ZYDIS_BUILD_EXAMPLES OFF)
         set(ZYDIS_BUILD_DOXYGEN OFF)
-        set(ZYAN_ZYCORE_PATH "${CMAKE_CURRENT_LIST_DIR}/zycore" CACHE PATH "")
+        set(ZYAN_ZYCORE_PATH "${CMAKE_CURRENT_LIST_DIR}/zycore-c" CACHE PATH "")
         set(CMAKE_DISABLE_FIND_PACKAGE_Doxygen ON)
-        add_subdirectory(zydis)
-        add_library(Zydis::Zydis ALIAS Zydis)
+        if (NOT TARGET Zydis)
+            add_subdirectory(zydis)
+        endif()
     endif()
 endif()

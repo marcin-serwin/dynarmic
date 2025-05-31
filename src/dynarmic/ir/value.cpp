@@ -85,23 +85,24 @@ Value Value::EmptyNZCVImmediateMarker() {
     return result;
 }
 
-bool Value::IsIdentity() const {
+/// @brief ?
+bool Value::IsIdentity() const noexcept {
     if (type == Type::Opaque)
         return inner.inst->GetOpcode() == Opcode::Identity;
     return false;
 }
 
-bool Value::IsImmediate() const {
+bool Value::IsEmpty() const noexcept {
+    return type == Type::Void;
+}
+
+bool Value::IsImmediate() const noexcept {
     if (IsIdentity())
         return inner.inst->GetArg(0).IsImmediate();
     return type != Type::Opaque;
 }
 
-bool Value::IsEmpty() const {
-    return type == Type::Void;
-}
-
-Type Value::GetType() const {
+Type Value::GetType() const noexcept {
     if (IsIdentity())
         return inner.inst->GetArg(0).GetType();
     if (type == Type::Opaque)
@@ -199,7 +200,6 @@ AccType Value::GetAccType() const {
 
 s64 Value::GetImmediateAsS64() const {
     ASSERT(IsImmediate());
-
     switch (GetType()) {
     case IR::Type::U1:
         return s64(GetU1());
@@ -212,13 +212,12 @@ s64 Value::GetImmediateAsS64() const {
     case IR::Type::U64:
         return s64(GetU64());
     default:
-        ASSERT_FALSE("GetImmediateAsS64 called on an incompatible Value type.");
+        UNREACHABLE();
     }
 }
 
 u64 Value::GetImmediateAsU64() const {
     ASSERT(IsImmediate());
-
     switch (GetType()) {
     case IR::Type::U1:
         return u64(GetU1());
@@ -231,24 +230,8 @@ u64 Value::GetImmediateAsU64() const {
     case IR::Type::U64:
         return u64(GetU64());
     default:
-        ASSERT_FALSE("GetImmediateAsU64 called on an incompatible Value type.");
+        UNREACHABLE();
     }
-}
-
-bool Value::IsSignedImmediate(s64 value) const {
-    return IsImmediate() && GetImmediateAsS64() == value;
-}
-
-bool Value::IsUnsignedImmediate(u64 value) const {
-    return IsImmediate() && GetImmediateAsU64() == value;
-}
-
-bool Value::HasAllBitsSet() const {
-    return IsSignedImmediate(-1);
-}
-
-bool Value::IsZero() const {
-    return IsUnsignedImmediate(0);
 }
 
 }  // namespace Dynarmic::IR

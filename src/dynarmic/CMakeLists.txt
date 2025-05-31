@@ -262,6 +262,7 @@ if ("A64" IN_LIST DYNARMIC_FRONTENDS)
 endif()
 
 if ("x86_64" IN_LIST ARCHITECTURE)
+    target_compile_definitions(dynarmic PRIVATE XBYAK_OLD_DISP_CHECK=1)
     target_link_libraries(dynarmic
         PRIVATE
             xbyak::xbyak
@@ -509,7 +510,7 @@ target_link_libraries(dynarmic
         Boost::boost
         fmt::fmt
         merry::mcl
-        tsl::robin_map
+        unordered_dense::unordered_dense
 )
 if (DYNARMIC_USE_LLVM)
     target_include_directories(dynarmic PRIVATE ${LLVM_INCLUDE_DIRS})

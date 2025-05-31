@@ -11,6 +11,7 @@
 #include <mcl/scope_exit.hpp>
 #include <mcl/stdint.hpp>
 #include <mcl/type_traits/integer_of_size.hpp>
+#include <boost/container/static_vector.hpp>
 
 #include "dynarmic/backend/x64/a64_jitstate.h"
 #include "dynarmic/backend/x64/abi.h"
@@ -64,8 +65,8 @@ A64EmitX64::A64EmitX64(BlockOfCode& code, A64::UserConfig conf, A64::Jit* jit_in
 
 A64EmitX64::~A64EmitX64() = default;
 
-A64EmitX64::BlockDescriptor A64EmitX64::Emit(IR::Block& block) {
-    if (conf.very_verbose_debugging_output) {
+A64EmitX64::BlockDescriptor A64EmitX64::Emit(IR::Block& block) noexcept {
+    if (conf.very_verbose_debugging_output) [[unlikely]] {
         std::puts(IR::DumpBlock(block).c_str());
     }
 
@@ -74,8 +75,8 @@ A64EmitX64::BlockDescriptor A64EmitX64::Emit(IR::Block& block) {
         code.DisableWriting();
     };
 
-    const std::vector<HostLoc> gpr_order = [this] {
-        std::vector<HostLoc> gprs{any_gpr};
+    const boost::container::static_vector<HostLoc, 28> gpr_order = [this] {
+        boost::container::static_vector<HostLoc, 28> gprs{any_gpr};
         if (conf.page_table) {
             gprs.erase(std::find(gprs.begin(), gprs.end(), HostLoc::R14));
         }
@@ -85,42 +86,59 @@ A64EmitX64::BlockDescriptor A64EmitX64::Emit(IR::Block& block) {
         return gprs;
     }();
 
-    RegAlloc reg_alloc{code, gpr_order, any_xmm};
+    new (&this->reg_alloc) RegAlloc{&code, gpr_order, any_xmm};
     A64EmitContext ctx{conf, reg_alloc, block};
 
     // Start emitting.
     code.align();
-    const u8* const entrypoint = code.getCurr();
+    const auto* const entrypoint = code.getCurr();
 
-    ASSERT(block.GetCondition() == IR::Cond::AL);
-
-    for (auto iter = block.begin(); iter != block.end(); ++iter) {
-        IR::Inst* inst = &*iter;
-
-        // Call the relevant Emit* member function.
-        switch (inst->GetOpcode()) {
-#define OPCODE(name, type, ...)            \
-    case IR::Opcode::name:                 \
-        A64EmitX64::Emit##name(ctx, inst); \
-        break;
-#define A32OPC(...)
-#define A64OPC(name, type, ...)               \
-    case IR::Opcode::A64##name:               \
-        A64EmitX64::EmitA64##name(ctx, inst); \
-        break;
+    DEBUG_ASSERT(block.GetCondition() == IR::Cond::AL);
+    typedef void (EmitX64::*EmitHandlerFn)(EmitContext& context, IR::Inst* inst);
+    constexpr EmitHandlerFn opcode_handlers[] = {
+#define OPCODE(name, type, ...) &EmitX64::Emit##name,
+#define A32OPC(name, type, ...)
+#define A64OPC(name, type, ...)
 #include "dynarmic/ir/opcodes.inc"
 #undef OPCODE
 #undef A32OPC
 #undef A64OPC
+    };
+    typedef void (A64EmitX64::*A64EmitHandlerFn)(A64EmitContext& context, IR::Inst* inst);
+    constexpr A64EmitHandlerFn a64_handlers[] = {
+#define OPCODE(...)
+#define A32OPC(...)
+#define A64OPC(name, type, ...) &A64EmitX64::EmitA64##name,
+#include "dynarmic/ir/opcodes.inc"
+#undef OPCODE
+#undef A32OPC
+#undef A64OPC
+    };
 
-        default:
-            ASSERT_MSG(false, "Invalid opcode: {}", inst->GetOpcode());
-            break;
+    for (auto& inst : block) {
+        auto const opcode = inst.GetOpcode();
+        // Call the relevant Emit* member function.
+        switch (opcode) {
+#define OPCODE(name, type, ...) [[likely]] case IR::Opcode::name: goto opcode_branch;
+#define A32OPC(name, type, ...)
+#define A64OPC(name, type, ...) [[likely]] case IR::Opcode::A64##name: goto a64_branch;
+#include "dynarmic/ir/opcodes.inc"
+#undef OPCODE
+#undef A32OPC
+#undef A64OPC
+        default: [[unlikely]] {
+            ASSERT_MSG(false, "Invalid opcode: {}", opcode);
+            goto finish_this_inst;
         }
-
+        }
+opcode_branch:
+        (this->*opcode_handlers[size_t(opcode)])(ctx, &inst);
+        goto finish_this_inst;
+a64_branch:
+        (this->*a64_handlers[size_t(opcode) - std::size(opcode_handlers)])(ctx, &inst);
+finish_this_inst:
         ctx.reg_alloc.EndOfAllocScope();
-
-        if (conf.very_verbose_debugging_output) {
+        if (conf.very_verbose_debugging_output) [[unlikely]] {
             EmitVerboseDebuggingOutput(reg_alloc);
         }
     }

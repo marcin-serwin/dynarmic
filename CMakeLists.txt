@@ -48,6 +48,13 @@ endif()
 # Add the module directory to the list of paths
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMakeModules")
 
+# Arch detection
+include(DetectArchitecture)
+if (NOT DEFINED ARCHITECTURE)
+    message(FATAL_ERROR "Unsupported architecture encountered. Ending CMake generation.")
+endif()
+message(STATUS "Target architecture: ${ARCHITECTURE}")
+
 # Compiler flags
 if (MSVC)
     set(DYNARMIC_CXX_FLAGS
@@ -91,7 +98,12 @@ else()
         -Wextra
         -Wcast-qual
         -pedantic
-        -Wno-missing-braces)
+        -Wno-missing-braces
+        -Wstack-usage=4096)
+
+    if (ARCHITECTURE STREQUAL "x86_64")
+        list(APPEND DYNARMIC_CXX_FLAGS -mtune=core2)
+    endif()
 
     if (DYNARMIC_WARNINGS_AS_ERRORS)
         list(APPEND DYNARMIC_CXX_FLAGS
@@ -123,13 +135,6 @@ else()
     endif()
 endif()
 
-# Arch detection
-include(DetectArchitecture)
-if (NOT DEFINED ARCHITECTURE)
-    message(FATAL_ERROR "Unsupported architecture encountered. Ending CMake generation.")
-endif()
-message(STATUS "Target architecture: ${ARCHITECTURE}")
-
 # Forced use of individual bundled libraries for non-REQUIRED library is possible with e.g. cmake -DCMAKE_DISABLE_FIND_PACKAGE_fmt=ON ...
 
 if (DYNARMIC_USE_BUNDLED_EXTERNALS)
@@ -138,18 +143,15 @@ if (DYNARMIC_USE_BUNDLED_EXTERNALS)
     set(CMAKE_DISABLE_FIND_PACKAGE_fmt ON)
     set(CMAKE_DISABLE_FIND_PACKAGE_mcl ON)
     set(CMAKE_DISABLE_FIND_PACKAGE_oaknut ON)
-    set(CMAKE_DISABLE_FIND_PACKAGE_tsl-robin-map ON)
+    set(CMAKE_DISABLE_FIND_PACKAGE_unordered_dense ON)
     set(CMAKE_DISABLE_FIND_PACKAGE_xbyak ON)
     set(CMAKE_DISABLE_FIND_PACKAGE_Zydis ON)
 endif()
 
-# Ensure that robin-map `export`s
-set(TSL_ROBIN_MAP_ENABLE_INSTALL ON)
-
 find_package(Boost 1.57 REQUIRED)
 find_package(fmt 9 CONFIG)
 find_package(mcl 0.1.13 EXACT CONFIG)
-find_package(tsl-robin-map CONFIG)
+find_package(unordered_dense CONFIG)
 
 if ("arm64" IN_LIST ARCHITECTURE OR DYNARMIC_TESTS)
     find_package(oaknut 2.0.1 CONFIG)
