@@ -30,12 +30,6 @@ jobs:
       - name: Checkout dynarmic repo
         uses: actions/checkout@v2
 
-      - name: Checkout ext-boost repo
-        uses: actions/checkout@v2
-        with:
-          repository: MerryMage/ext-boost
-          path: externals/ext-boost
-
       - name: Checkout unicorn repo
         if: ${{matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'}}
         uses: actions/checkout@v2
