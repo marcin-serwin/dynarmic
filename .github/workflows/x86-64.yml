@@ -51,7 +51,6 @@ jobs:
         run: >
           cmake
           -B ${{github.workspace}}/build
-          -DBOOST_INCLUDEDIR=${{github.workspace}}/externals/ext-boost
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DDYNARMIC_ENABLE_CPU_FEATURE_DETECTION=${{matrix.cpu_detection}}
           -DDYNARMIC_TESTS_USE_UNICORN=1
@@ -65,7 +64,6 @@ jobs:
         run: >
           cmake
           -B ${{github.workspace}}/build
-          -DBOOST_INCLUDEDIR=${{github.workspace}}/externals/ext-boost
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DDYNARMIC_ENABLE_CPU_FEATURE_DETECTION=${{matrix.cpu_detection}}
           -DDYNARMIC_TESTS_USE_UNICORN=1
@@ -79,7 +77,6 @@ jobs:
         run: >
           cmake
           -B ${{github.workspace}}/build
-          -DBOOST_INCLUDEDIR=${{github.workspace}}/externals/ext-boost
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DDYNARMIC_ENABLE_CPU_FEATURE_DETECTION=${{matrix.cpu_detection}}
           -G "Visual Studio 17 2022"
